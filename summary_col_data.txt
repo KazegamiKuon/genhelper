@@ -1,0 +1,4 @@
+col_name,convert,rename
+4Ner/kb,4Ner/kb_to_cM/Mb,Recomb_rate(cM/Mb)
+4Ner,4Ner_to_cM,Map(cM)
+Hotspot_Density,,

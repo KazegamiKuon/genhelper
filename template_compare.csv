@@ -1,0 +1,3 @@
+,path,rates,poss,name,ylabel,xlabel,query
+0,../HapmapII_GRCh37_RecombinationHotspots/genetic_map_GRCh37_chr22.txt,Rate(cM/Mb),Position(bp),genetic_map_GRCh38_chr22,Recombination Rate (cM/Mb),Position (Mb),
+1,./genetic_map_GRCh38_merged.tab,recomb_rate,pos,genetic_map_GRCh38_chr22_merged,Recombination Rate (cM/Mb),Position (Mb),chrom == 'chr22'
