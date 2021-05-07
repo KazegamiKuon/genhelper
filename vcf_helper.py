@@ -73,7 +73,14 @@ def vcf_to_zarr(vcfpath):
 
 def summary(vcfpath):
     # vcfpath = '1KGP.chr1.10M.hg38_phased.vcf.gz'
-    zarrpath = vcf_to_zarr(vcfpath)
+    zarrpath = ''
+    if os.path.isfile(vcfpath):
+        zarrpath = vcf_to_zarr(vcfpath)
+    else:
+        zarrpath = get_zarr_path(vcfpath)
+    if not os.path.isdir(zarrpath):
+        print("Zarr data of vcf is undifined. Phease check vcf path is True or Zarr already haved.")
+        return
     
     start_time = time.time()
 
