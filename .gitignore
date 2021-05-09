@@ -1,0 +1,3 @@
+#ignore vscode and cache
+.vscode/
+__pycache__/
