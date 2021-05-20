@@ -100,5 +100,8 @@ def get_sample_batch(sample_indexs,size):
         samples = samples.difference(sample)
     return sample_batch
 
-if __name__ == '__main__':
+def main():
     print('not supported')
+
+if __name__ == '__main__':
+    main()

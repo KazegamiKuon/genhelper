@@ -2,9 +2,8 @@ import os
 import zarr
 import allel
 import numpy as np
-import time
-import vcf_helper as vhelper
-import ldhat_helper as ldhelper
+from . import vcf_helper as vhelper
+from . import ldhat_helper as ldhelper
 from .config_genhelper import convert_values
 import pandas as pd
 from random import sample as sampling
