@@ -1,6 +1,7 @@
 import gzip
 from operator import pos
 import os
+from types import FunctionType
 import allel
 import h5py
 import zarr
@@ -39,6 +40,7 @@ def consesus_genotype(data:tuple) -> str:
         temp_inter = np.array([-1,*list(temp_inter)])
     else:
         temp_inter = np.array([-1,-1])
+    return '/'.join(list(map(vzconfig.gtmmap.get,temp_inter)))
 
 def consesus_genotype_sample(data:list)->np.ndarray:
     temp = zip(*data)
@@ -73,7 +75,7 @@ def diploid_to_haploid_male(mapdata):
             return '/'.join(temp)
     return diploid
 
-def consesus_genotype_vcf(vcf_files:typing.List[str],pars:list,vcf_consesus:str,check_male:function)->None:
+def consesus_genotype_vcf(vcf_files:typing.List[str],pars:list,vcf_consesus_prefix:str,check_male:FunctionType)->None:
     callsets = []
     data_idxs = []
     vcallsets = []
@@ -82,7 +84,7 @@ def consesus_genotype_vcf(vcf_files:typing.List[str],pars:list,vcf_consesus:str,
         callset = zarr.open_group(zarr_path)
         callsets.append(callset)
         vcallsets.append(callset.variants)
-        data_idxs.append[vzconfig.get_index_col(i)]
+        data_idxs.append(vzconfig.get_index_col(i))
     inter_variantdf = get_dataframe_variant_id(vcallsets)
     ispar_mask_idxs = None
     for par in pars:
@@ -93,12 +95,13 @@ def consesus_genotype_vcf(vcf_files:typing.List[str],pars:list,vcf_consesus:str,
         else:
             ispar_mask_idxs = mask_indexs
     inter_variantdf[vzconfig.par_col] = ispar_mask_idxs
+    inter_variantdf.to_csv(vcf_consesus_prefix+'.csv.gz')
     gt_data = []
     for i, callset in enumerate(tqdm(callsets,desc="read gt data")):
         indexs = inter_variantdf[vzconfig.get_index_col(i)].values
-        gt_data.append(callset.calldata[vzconfig.genotype].get_orthogonal_selection(indexs,slice(None),slice(None)))
+        gt_data.append(callset.calldata[vzconfig.genotype].get_orthogonal_selection((indexs,slice(None),slice(None))))
     nb_variant = len(inter_variantdf)
-    with gzip.open(vcf_consesus,'wt') as wf:
+    with gzip.open(vcf_consesus_prefix+'.vcf.gz','wt') as wf:
         sample_name = callsets[0].samples[:]
         males = list(map(check_male,sample_name))
         line = '\t'.join(sample_name)+'\n'
