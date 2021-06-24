@@ -1,12 +1,118 @@
+import gzip
+from operator import pos
 import os
 import allel
 import h5py
 import zarr
-import numcodecs
+# import numcodecs
 import numpy as np
+import pandas as pd
 import time
-import fire
+# import fire
 import argparse
+from .config_class import vcf_zarr_config as vzconfig
+import typing
+from tqdm.notebook import tqdm
+
+def get_df_exclude_par_region(df:pd.DataFrame,pos_col:str,pars:list)->pd.DataFrame:
+    mask_array = None
+    # get mask for par region
+    for par in pars:
+        temp = (df[pos_col]>= par[0])&(df[pos_col<=par[1]])
+        if mask_array is None:
+            mask_array= temp
+        else:
+            mask_array = mask_array & temp
+        del temp
+    # change mask to not par region
+    mask_array = mask_array == False
+    return df[mask_array].copy()
+
+def consesus_genotype(data:tuple) -> str:
+    # define special case, data only 2 elements
+    temp_inter = set(data[0])
+    list(map(lambda x: temp_inter.intersection_update(set(x)),data))
+    nb_inter = len(temp_inter)
+    if nb_inter >= 2:
+        temp_inter = np.array(list(temp_inter))
+    elif nb_inter == 1:
+        temp_inter = np.array([-1,*list(temp_inter)])
+    else:
+        temp_inter = np.array([-1,-1])
+
+def consesus_genotype_sample(data:list)->np.ndarray:
+    temp = zip(*data)
+    redata = np.array(list(map(consesus_genotype,temp)))
+    return redata
+
+def get_dataframe_variant_id(vtcallsets:typing.List[zarr.Group])-> pd.DataFrame:
+    df_variant_id = None
+    for i, vtcallset in enumerate(vtcallsets):
+        tempdf = pd.DataFrame({
+            vzconfig.chrom: vtcallset[vzconfig.chrom][:],
+            vzconfig.position: vtcallset[vzconfig.position][:],
+            vzconfig.ref: vtcallset[vzconfig.ref][:],
+            vzconfig.alt: vtcallset[vzconfig.alt][:,0],
+            vzconfig.get_index_col(i): np.arange(vtcallset[vzconfig.chrom].shape[0])
+        })
+        if df_variant_id is None:
+            df_variant_id = tempdf
+        else:
+            df_variant_id = pd.merge(df_variant_id,tempdf,indicator=True,how='inner',on=[vzconfig.chrom,vzconfig.position,vzconfig.ref,vzconfig.alt])
+    return df_variant_id
+
+def diploid_to_haploid_male(mapdata):
+    male = mapdata[0]
+    diploid = mapdata[1]
+    temp = set('0','1')
+    if male:
+        temp.intersection_update(set(diploid.split('/')))
+        if len(temp) == 0:
+            return '-1'
+        else:
+            return '/'.join(temp)
+    return diploid
+
+def consesus_genotype_vcf(vcf_files:typing.List[str],pars:list,vcf_consesus:str,check_male:function)->None:
+    callsets = []
+    data_idxs = []
+    vcallsets = []
+    for i,vcf_file in enumerate(tqdm(vcf_files,desc="create zarr callset")):
+        zarr_path = vcf_to_zarr(vcf_file)
+        callset = zarr.open_group(zarr_path)
+        callsets.append(callset)
+        vcallsets.append(callset.variants)
+        data_idxs.append[vzconfig.get_index_col(i)]
+    inter_variantdf = get_dataframe_variant_id(vcallsets)
+    ispar_mask_idxs = None
+    for par in pars:
+        positions = inter_variantdf[vzconfig.position].values
+        mask_indexs = (( positions > par[0]) & (positions <= par[1]))
+        if ispar_mask_idxs is not None:
+            ispar_mask_idxs = ispar_mask_idxs | mask_indexs
+        else:
+            ispar_mask_idxs = mask_indexs
+    inter_variantdf[vzconfig.par_col] = ispar_mask_idxs
+    gt_data = []
+    for i, callset in enumerate(tqdm(callsets,desc="read gt data")):
+        indexs = inter_variantdf[vzconfig.get_index_col(i)].values
+        gt_data.append(callset.calldata[vzconfig.genotype].get_orthogonal_selection(indexs,slice(None),slice(None)))
+    nb_variant = len(inter_variantdf)
+    with gzip.open(vcf_consesus,'wt') as wf:
+        sample_name = callsets[0].samples[:]
+        males = list(map(check_male,sample_name))
+        line = '\t'.join(sample_name)+'\n'
+        wf.write(line)
+        for i in tqdm(range(nb_variant),desc="intersection genotype"):
+            samples = [gt[i] for gt in gt_data]
+            items = consesus_genotype_sample(samples)
+            if ispar_mask_idxs[i] == False:
+                # zip data
+                items = zip(males,items)
+                # convert to haploid is sample is male
+                items = list(map(diploid_to_haploid_male,items))
+            line = '\t'.join(items)+'\n'
+            wf.write(line)
 
 def check_vcf_file(path):
     if not os.path.isfile(path):
