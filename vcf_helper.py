@@ -66,11 +66,11 @@ def get_dataframe_variant_id(vtcallsets:typing.List[zarr.Group])-> pd.DataFrame:
 def diploid_to_haploid_male(mapdata):
     male = mapdata[0]
     diploid = mapdata[1]
-    temp = set('0','1')
+    temp = set(['0','1'])
     if male:
         temp.intersection_update(set(diploid.split('/')))
         if len(temp) == 0:
-            return '-1'
+            return '.'
         else:
             return '/'.join(temp)
     return diploid
