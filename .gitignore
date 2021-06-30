@@ -1,3 +1,4 @@
 #ignore vscode and cache
 .vscode/
 __pycache__/
+git-actions-practice/
