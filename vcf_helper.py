@@ -60,7 +60,7 @@ def get_dataframe_variant_id(vtcallsets:typing.List[zarr.Group])-> pd.DataFrame:
         if df_variant_id is None:
             df_variant_id = tempdf
         else:
-            df_variant_id = pd.merge(df_variant_id,tempdf,indicator=True,how='inner',on=[vzconfig.chrom,vzconfig.position,vzconfig.ref,vzconfig.alt])
+            df_variant_id = pd.merge(df_variant_id,tempdf,how='inner',on=[vzconfig.chrom,vzconfig.position,vzconfig.ref,vzconfig.alt])
     return df_variant_id
 
 def diploid_to_haploid_male(mapdata):
@@ -165,15 +165,16 @@ def count_alleles(variants : allel.VariantChunkedTable,ctype):
         nb_0 = len(variants) - nb_0
     return nb_0, nb_1, nb_2
 
-def get_zarr_path(path):
+def get_zarr_path(path,in_zarr_folder=True):
     dpath, tfile = os.path.split(path)
     fname, fex = os.path.splitext(tfile)
-    dpath, tfolder = os.path.split(dpath)
-    dpath = os.path.join(dpath,'zarr')
+    if in_zarr_folder:
+        dpath, tfolder = os.path.split(dpath)
+        dpath = os.path.join(dpath,'zarr')
     return os.path.join(dpath,fname+'.zarr')
 
-def vcf_to_zarr(vcfpath):
-    zarrpath = get_zarr_path(vcfpath)
+def vcf_to_zarr(vcfpath,in_zarr_folder=True):
+    zarrpath = get_zarr_path(vcfpath,in_zarr_folder)
     if not os.path.isdir(zarrpath):
         start_time = time.time()
         allel.vcf_to_zarr(vcfpath, zarrpath , fields='*', overwrite=True)
