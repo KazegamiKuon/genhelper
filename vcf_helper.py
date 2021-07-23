@@ -15,6 +15,7 @@ from .config_class import vcf_zarr_config as vzconfig
 import typing
 from tqdm.notebook import tqdm
 
+# ascnbjasbcb
 def get_df_exclude_par_region(df:pd.DataFrame,pos_col:str,pars:list)->pd.DataFrame:
     mask_array = None
     # get mask for par region
