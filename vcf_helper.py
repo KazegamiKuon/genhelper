@@ -47,6 +47,12 @@ def consesus_genotype_sample(data:list)->np.ndarray:
     redata = np.array(list(map(consesus_genotype,temp)))
     return redata
 
+def merge_df_variant_id(df_x:pd.DataFrame,df_y:pd.DataFrame):
+    # id = 'id'
+    # df_x[id] = df_x.apply(lambda row: ':'.join([row[vzconfig.chrom],str(row[vzconfig.position]),row[vzconfig.ref],row[vzconfig.alt]]),axis=1)
+    # df_y[id] = df_y.apply(lambda row: ':'.join([row[vzconfig.chrom],str(row[vzconfig.position]),row[vzconfig.ref],row[vzconfig.alt]]),axis=1)
+    return pd.merge(df_x,df_y,how='inner',on=[vzconfig.chrom,vzconfig.position,vzconfig.ref,vzconfig.alt])
+
 def get_dataframe_variant_id(vtcallsets:typing.List[zarr.Group])-> pd.DataFrame:
     df_variant_id = None
     for i, vtcallset in enumerate(vtcallsets):
@@ -54,13 +60,13 @@ def get_dataframe_variant_id(vtcallsets:typing.List[zarr.Group])-> pd.DataFrame:
             vzconfig.chrom: vtcallset[vzconfig.chrom][:],
             vzconfig.position: vtcallset[vzconfig.position][:],
             vzconfig.ref: vtcallset[vzconfig.ref][:],
-            vzconfig.alt: vtcallset[vzconfig.alt][:,0],
+            vzconfig.alt: vtcallset[vzconfig.alt][:,0],            
             vzconfig.get_index_col(i): np.arange(vtcallset[vzconfig.chrom].shape[0])
         })
         if df_variant_id is None:
             df_variant_id = tempdf
         else:
-            df_variant_id = pd.merge(df_variant_id,tempdf,how='inner',on=[vzconfig.chrom,vzconfig.position,vzconfig.ref,vzconfig.alt])
+            df_variant_id = merge_df_variant_id(df_variant_id,tempdf)
     return df_variant_id
 
 def diploid_to_haploid_male(mapdata):
