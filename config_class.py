@@ -13,6 +13,8 @@ class VcfToZarrConfig:
         self.gtmmap['0'] = 0
         self.gtmmap[1] = '1'
         self.gtmmap['1'] = 1
+        self.flag = 'flag'
+        self.af = 'AF'
         pass
 
     def get_index_col(self,i:int)->str:
